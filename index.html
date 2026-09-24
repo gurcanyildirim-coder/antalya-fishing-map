@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#071f31">
+<title>Antalya Fishing Map PRO</title>
+
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Arial,sans-serif;background:#071f31}
+#map{position:fixed;inset:0;z-index:1}
+.leaflet-container{background:#d9e8ee;overflow:hidden;outline:0;font:12px/1.5 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}
+.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}
+.leaflet-map-pane{position:absolute;left:0;top:0}
+.leaflet-pane{z-index:400}
+.leaflet-tile-pane{z-index:200}
+.leaflet-overlay-pane{z-index:400}
+.leaflet-shadow-pane{z-index:500}
+.leaflet-marker-pane{z-index:600}
+.leaflet-tooltip-pane{z-index:650}
+.leaflet-popup-pane{z-index:700}
+.leaflet-map-pane canvas{z-index:100}
+.leaflet-map-pane svg{z-index:200}
+.leaflet-tile{display:block;width:256px;height:256px;max-width:none!important;border:0;visibility:hidden;-webkit-user-select:none;user-select:none;-webkit-user-drag:none}
+.leaflet-tile-loaded{visibility:inherit}
+.leaflet-tile-container{pointer-events:none}
+.leaflet-container img.leaflet-tile{max-width:none!important}
+.leaflet-control{position:relative;z-index:800;pointer-events:auto}
+.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
+.leaflet-top{top:0}.leaflet-bottom{bottom:0}.leaflet-left{left:0}.leaflet-right{right:0}
+.leaflet-top .leaflet-control{margin-top:10px}.leaflet-left .leaflet-control{margin-left:10px}.leaflet-right .leaflet-control{margin-right:10px}
+.leaflet-control-zoom{box-shadow:0 1px 5px rgba(0,0,0,.45);border-radius:5px;overflow:hidden}
+.leaflet-control-zoom a{display:block;width:34px;height:34px;line-height:34px;text-align:center;text-decoration:none;background:#fff;color:#333;font:bold 22px/34px Arial;border-bottom:1px solid #ccc}
+.leaflet-control-zoom a:last-child{border-bottom:0}
+.leaflet-control-attribution{font-size:9px;background:rgba(255,255,255,.75);padding:0 5px;color:#333}
+.leaflet-control-attribution a{color:#0078a8}
+.leaflet-grab{cursor:grab}.leaflet-dragging .leaflet-grab{cursor:grabbing}
+.leaflet-zoom-animated{-webkit-transform-origin:0 0;transform-origin:0 0}
+
+.top{position:fixed;z-index:3000;top:9px;left:9px;right:9px;display:flex;gap:7px;align-items:center;pointer-events:none}
+.top>*{pointer-events:auto}
+.brand{background:rgba(4,25,39,.96);color:#fff;padding:9px 11px;border-radius:15px;font-weight:900;font-size:14px;box-shadow:0 3px 14px #0006}
+.sp{flex:1}
+.btn{border:0;border-radius:13px;background:#fff;color:#082435;padding:9px 11px;font-weight:850;min-height:42px;box-shadow:0 3px 12px #0004}
+.live{background:#bfffe2;color:#06472e}
+.live.active{background:#ffdfdf;color:#681d1d}
+.maplabel{position:fixed;z-index:2999;left:10px;top:75px;background:#fff9;padding:6px 8px;border-radius:10px;font-size:10px;color:#173747}
+
+#gpsHud{position:fixed;z-index:3500;top:112px;left:50%;transform:translateX(-50%);background:rgba(4,25,39,.94);color:#fff;padding:7px 10px;border-radius:12px;font-size:11px;display:none;box-shadow:0 3px 12px #0006;white-space:nowrap}
+
+.card{position:fixed;z-index:3000;left:9px;right:9px;bottom:9px;background:rgba(4,25,39,.97);color:#fff;border-radius:19px;padding:11px;box-shadow:0 6px 28px #0007;max-height:49vh;overflow:auto}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.stat{background:#0e364b;border-radius:13px;padding:9px;min-width:0}
+.label{font-size:10px;color:#aac5d2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.num{font-size:19px;font-weight:900;margin-top:2px;white-space:nowrap}
+.row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:7px}
+.small{font-size:11px;color:#a9c4d1;line-height:1.35}
+.ok{color:#8ff0bb}.warn{color:#ffd37a}.danger{color:#ff9d9d}
+.pill{background:#123e53;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:800}
+.good{background:#114a3a;color:#b7ffdf}
+.hot{background:#55350f;color:#ffe1a5}
+.cold{background:#163e59;color:#b9e4ff}
+details{margin-top:7px}
+summary{cursor:pointer;font-weight:800}
+.panelrow{display:flex;justify-content:space-between;margin-top:8px;color:#aac5d2;font-size:11px}
+#profile{width:100%;height:125px;margin-top:7px;border-radius:14px;display:block}
+a{color:#9bddff}
+@media(max-width:430px){
+  .brand{font-size:13px}
+  .btn{padding:8px 9px}
+  .card{max-height:49vh}
+}
+</style>
+</head>
+
+<body>
+<div id="map"></div>
+<div class="maplabel">Esri / OSM • OpenSeaMap • Antalya • Bathymetry Model</div>
+<div id="gpsHud">📍 —</div>
+
+<div class="top">
+  <div class="brand">🎣 Antalya Fishing Map PRO</div>
+  <div class="sp"></div>
+  <button class="btn live" id="liveBtn">▶ CANLI</button>
+  <button class="btn" id="locBtn">📍</button>
+</div>
+
+<div class="card" id="card">
+  <div class="grid">
+    <div class="stat">
+      <div class="label">MEVCUT DERİNLİK</div>
+      <div class="num" id="depth">— m</div>
+    </div>
+    <div class="stat">
+      <div class="label">DİP YAPISI</div>
+      <div class="num" id="structure">—</div>
+    </div>
+    <div class="stat">
+      <div class="label">DEĞİŞİM</div>
+      <div class="num" id="change">—</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <span class="pill" id="confidence">VERİ: —</span>
+    <span class="pill" id="range">ARALIK: —</span>
+    <span class="pill" id="gps">GPS: —</span>
+    <span class="pill" id="coords">KONUM: —</span>
+  </div>
+
+  <div class="row">
+    <button class="btn" id="centerBtn">🎯 Konuma dön</button>
+    <button class="btn" id="pointBtn">⭐ Nokta</button>
+    <button class="btn" id="testBtn">🌊 Haritadan test</button>
+  </div>
+
+  <svg id="profile" viewBox="0 0 600 125" preserveAspectRatio="none">
+    <rect x="0" y="0" width="600" height="125" fill="#092638"/>
+    <text x="12" y="22" fill="#a9c4d1" font-size="13">CANLI'yı açınca dip profili görünecek.</text>
+  </svg>
+
+  <div class="row">
+    <span class="pill cold">🔵 Sığ</span>
+    <span class="pill good">🟢 Yapı</span>
+    <span class="pill hot">🟠 Kırık</span>
+    <span class="pill" style="background:#53252a;color:#ffd2d5">🔴 Güçlü düşüş</span>
+  </div>
+
+  <div class="row small" id="status">Harita hazır. CANLI'ya basıp GPS'i başlatın.</div>
+
+  <details>
+    <summary>⚙️ Balıkçı ayarları</summary>
+    <div class="panelrow"><span>Profil yarıçapı</span><strong id="radiusText">250 m</strong></div>
+    <input id="radius" type="range" min="100" max="500" step="50" value="250" style="width:100%">
+    <div class="panelrow"><span>Örnek sayısı</span><strong id="samplesText">7</strong></div>
+    <input id="samples" type="range" min="5" max="9" step="2" value="7" style="width:100%">
+    <div class="panelrow"><span>Güncelleme</span><strong id="intervalText">15 sn</strong></div>
+    <input id="interval" type="range" min="10" max="30" step="5" value="15" style="width:100%">
+  </details>
+
+  <div class="small" style="margin-top:7px">
+    Kaynak:
+    <a href="https://emodnet.ec.europa.eu/en/bathymetry" target="_blank" rel="noopener">EMODnet Bathymetry</a>.
+    Model verisidir; sonar değildir.
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+(function(){
+'use strict';
+
+const $ = id => document.getElementById(id);
+
+const map = L.map('map',{
+  zoomControl:true,
+  attributionControl:true,
+  preferCanvas:true,
+  tap:true,
+  zoomAnimation:false,
+  fadeAnimation:false,
+  markerZoomAnimation:false
+}).setView([36.88,30.72],10);
+
+let lastFix=null;
+let baseTileErrors=0;
+let fallbackStarted=false;
+
+const baseMap=L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+  {
+    maxZoom:19,
+    maxNativeZoom:19,
+    tileSize:256,
+    keepBuffer:6,
+    updateWhenIdle:false,
+    updateWhenZooming:true,
+    attribution:'© Esri — Esri, TomTom, Garmin, FAO, NOAA, USGS'
+  }
+).addTo(map);
+
+function startFallback(){
+  if(fallbackStarted)return;
+  fallbackStarted=true;
+  L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+      maxZoom:19,maxNativeZoom:19,tileSize:256,keepBuffer:6,
+      updateWhenIdle:false,updateWhenZooming:true,
+      attribution:'© OpenStreetMap contributors'
+    }
+  ).addTo(map);
+  setStatus('Esri haritası yanıt vermedi; OpenStreetMap yedeği açıldı.','warn');
+}
+baseMap.on('tileerror',()=>{
+  baseTileErrors++;
+  if(baseTileErrors>=3)startFallback();
+});
+
+
+/* V16-STABLE-MAP */
+let firstTileLoaded=false;
+let tileErrorCount=0;
+
+function mapStatus(msg, cls){
+  setStatus('Harita: '+msg, cls||'');
+}
+
+baseMap.on('tileload',()=>{
+  firstTileLoaded=true;
+  mapStatus('Esri aktif','ok');
+});
+baseMap.on('tileerror',()=>{
+  tileErrorCount++;
+  if(tileErrorCount>=2) startFallback();
+});
+
+setTimeout(()=>{
+  if(!firstTileLoaded && !fallbackStarted){
+    startFallback();
+  }
+},5000);
+
+map.on('dragstart',()=>{ initialMapLocked=true; });
+map.on('zoomstart',()=>{ initialMapLocked=true; });
+
+const seamarks=L.tileLayer(
+  'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
+  {
+    maxZoom:19,maxNativeZoom:18,tileSize:256,opacity:.95,
+    keepBuffer:4,updateWhenIdle:true,updateWhenZooming:false,
+    attribution:'© OpenSeaMap'
+  }
+).addTo(map);
+
+setTimeout(()=>{map.invalidateSize(true);mapStatus('Harita yükleniyor…','warn');},300);
+setTimeout(()=>map.invalidateSize(true),1000);
+setTimeout(()=>map.invalidateSize(true),2000);
+window.addEventListener('resize',()=>setTimeout(()=>map.invalidateSize(true),150));
+window.addEventListener('orientationchange',()=>setTimeout(()=>map.invalidateSize(true),500));
+
+let gpsWatchId=null;
+let live=false;
+let gpsSamples=[];
+let filteredGps=null;
+let gpsMarker=null;
+let gpsDot=null;
+let accuracyCircle=null;
+let fishingMarkers=[];
+let radius=250;
+let sampleCount=7;
+let updateInterval=15;
+let lastDepthFetch=0;
+let testMode=false;
+
+function setStatus(msg,cls){
+  $('status').textContent=msg;
+  $('status').className='row small '+(cls||'');
+}
+
+function metersPerLon(lat){
+  return 111320*Math.cos(lat*Math.PI/180);
+}
+function destination(lat,lon,bearing,dist){
+  const br=bearing*Math.PI/180;
+  const dLat=dist*Math.cos(br)/111320;
+  const dLon=dist*Math.sin(br)/metersPerLon(lat);
+  return [lat+dLat,lon+dLon];
+}
+
+function setGpsVisual(lat,lon,acc){
+  if(!gpsMarker){
+    gpsMarker=L.circleMarker([lat,lon],{
+      radius:8,color:'#fff',weight:3,fillColor:'#1677ff',fillOpacity:1,
+      pane:'markerPane'
+    }).addTo(map);
+    gpsDot=L.circleMarker([lat,lon],{
+      radius:3,color:'#fff',weight:1,fillColor:'#fff',fillOpacity:1,
+      pane:'markerPane'
+    }).addTo(map);
+    accuracyCircle=L.circle([lat,lon],{
+      radius:acc,color:'#2d8cff',weight:1,fillColor:'#2d8cff',fillOpacity:.10,
+      pane:'overlayPane'
+    }).addTo(map);
+  }else{
+    gpsMarker.setLatLng([lat,lon]);
+    gpsDot.setLatLng([lat,lon]);
+    accuracyCircle.setLatLng([lat,lon]).setRadius(acc);
+  }
+}
+
+let initialMapLocked=false;
+
+function applyGps(lat,lon,acc,center){
+  lastFix={lat,lon,acc};
+  setGpsVisual(lat,lon,acc);
+  $('gps').textContent='GPS: ±'+Math.round(acc)+' m';
+  $('coords').textContent='KONUM: '+lat.toFixed(6)+', '+lon.toFixed(6);
+  $('gpsHud').textContent='📍 '+lat.toFixed(6)+', '+lon.toFixed(6)+'  ±'+Math.round(acc)+' m';
+  $('gpsHud').style.display='block';
+
+  // IMPORTANT: GPS updates never move the map camera after the first lock.
+  // This prevents the map from jumping/scrubbing when iPhone GPS jitters.
+  if(center && !initialMapLocked){
+    initialMapLocked=true;
+    map.setView([lat,lon],17,{animate:false});
+    setTimeout(()=>map.invalidateSize(true),150);
+  }
+}
+
+function weightedFix(samples){
+  let sw=0,slat=0,slon=0;
+  for(const s of samples){
+    const w=1/Math.max(s.acc,3)**2;
+    sw+=w; slat+=s.lat*w; slon+=s.lon*w;
+  }
+  return {lat:slat/sw,lon:slon/sw,acc:Math.min(...samples.map(s=>s.acc))};
+}
+
+function handlePosition(pos,initial){
+  const lat=pos.coords.latitude;
+  const lon=pos.coords.longitude;
+  const acc=pos.coords.accuracy||50;
+  if(!Number.isFinite(lat)||!Number.isFinite(lon))return;
+  if(acc>40)return;
+
+  if(initial){
+    gpsSamples.push({lat,lon,acc});
+    if(gpsSamples.length<3){
+      setStatus('GPS konumu hassaslaştırılıyor…','warn');
+      return;
+    }
+    const best=Math.min(...gpsSamples.map(x=>x.acc));
+    const filtered=gpsSamples.filter(x=>x.acc<=Math.max(best+8,15));
+    const fix=weightedFix(filtered.length?filtered:gpsSamples);
+    applyGps(fix.lat,fix.lon,fix.acc,true);
+    fetchBathymetry(fix.lat,fix.lon,true);
+    return;
+  }
+
+  if(lastFix){
+    const d=map.distance([lastFix.lat,lastFix.lon],[lat,lon]);
+    if(d>80 && acc>10)return;
+  }
+
+  const alpha=Math.max(.15,Math.min(.65,12/Math.max(acc,4)));
+  if(!filteredGps){
+    filteredGps={lat,lon};
+  }else{
+    filteredGps.lat += (lat-filteredGps.lat)*alpha;
+    filteredGps.lon += (lon-filteredGps.lon)*alpha;
+  }
+
+  applyGps(filteredGps.lat,filteredGps.lon,acc,false);
+  const now=Date.now();
+  if(now-lastDepthFetch>=updateInterval*1000){
+    fetchBathymetry(filteredGps.lat,filteredGps.lon,true);
+  }
+}
+
+function startGps(){
+  if(!navigator.geolocation){
+    setStatus('Bu cihazda GPS erişimi yok.','danger'); return;
+  }
+  gpsSamples=[];
+  filteredGps=null;
+  live=true;
+  $('liveBtn').textContent='■ DURDUR';
+  $('liveBtn').classList.add('active');
+  setStatus('GPS başlatılıyor…','warn');
+
+  gpsWatchId=navigator.geolocation.watchPosition(
+    p=>handlePosition(p,gpsSamples.length<3),
+    e=>{
+      let msg='GPS hatası.';
+      if(e.code===1)msg='Konum izni verilmedi. Safari ayarlarından konuma izin verin.';
+      if(e.code===2)msg='Konum alınamadı.';
+      if(e.code===3)msg='GPS zaman aşımına uğradı.';
+      setStatus(msg,'danger');
+    },
+    {enableHighAccuracy:true,maximumAge:0,timeout:15000}
+  );
+}
+
+function stopGps(){
+  if(gpsWatchId!==null)navigator.geolocation.clearWatch(gpsWatchId);
+  gpsWatchId=null;
+  live=false;
+  $('liveBtn').textContent='▶ CANLI';
+  $('liveBtn').classList.remove('active');
+  setStatus('GPS durduruldu.','warn');
+}
+
+$('liveBtn').onclick=()=>live?stopGps():startGps();
+
+$('locBtn').onclick=()=>{
+  if(lastFix){
+    initialMapLocked=true;
+    map.setView([lastFix.lat,lastFix.lon],17,{animate:false});
+  }else startGps();
+};
+
+$('centerBtn').onclick=()=>{
+  if(lastFix){
+    initialMapLocked=true;
+    map.setView([lastFix.lat,lastFix.lon],17,{animate:false});
+    setTimeout(()=>{map.invalidateSize(true);gpsMarker&&gpsMarker.bringToFront();},150);
+  }else{
+    startGps();
+  }
+};
+
+$('pointBtn').onclick=()=>{
+  if(!lastFix){setStatus('Önce GPS konumu alınmalı.','warn');return;}
+  const m=L.marker([lastFix.lat,lastFix.lon]).addTo(map);
+  m.bindPopup('⭐ Kayıtlı balık noktası<br>'+lastFix.lat.toFixed(6)+', '+lastFix.lon.toFixed(6)).openPopup();
+  fishingMarkers.push(m);
+  try{
+    const arr=JSON.parse(localStorage.getItem('antalyaFishingPoints')||'[]');
+    arr.push({lat:lastFix.lat,lon:lastFix.lon,depth:$('depth').textContent,ts:new Date().toISOString()});
+    localStorage.setItem('antalyaFishingPoints',JSON.stringify(arr.slice(-100)));
+  }catch(e){}
+};
+
+$('testBtn').onclick=()=>{
+  testMode=!testMode;
+  $('testBtn').textContent=testMode?'❌ Testi kapat':'🌊 Haritadan test';
+  setStatus(testMode?'Haritaya dokunarak bathymetry testi yapabilirsiniz.':'Harita testi kapatıldı.',testMode?'warn':'');
+};
+
+map.on('click',e=>{
+  if(!testMode)return;
+  const {lat,lng}=e.latlng;
+  fetchBathymetry(lat,lng,false);
+});
+
+$('radius').oninput=e=>{
+  radius=+e.target.value;
+  $('radiusText').textContent=radius+' m';
+};
+$('samples').oninput=e=>{
+  sampleCount=+e.target.value;
+  $('samplesText').textContent=sampleCount;
+};
+$('interval').oninput=e=>{
+  updateInterval=+e.target.value;
+  $('intervalText').textContent=updateInterval+' sn';
+};
+
+async function apiJson(url,options){
+  const r=await fetch(url,options||{});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+async function depthSample(lat,lon){
+  const url='https://rest.emodnet-bathymetry.eu/depth_sample';
+  const body=new URLSearchParams();
+  body.set('geom','POINT('+lon+' '+lat+')');
+  body.set('srid','4326');
+  const j=await apiJson(url,{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body
+  });
+  const d=j.avg ?? j.smoothed ?? j.min ?? j.max ?? j.depth ?? j.z;
+  if(d===undefined||d===null)throw new Error('Derinlik değeri yok');
+  return Math.abs(Number(d));
+}
+
+async function profileSamples(lat,lon){
+  const offsets=[-radius,-radius*0.66,-radius*0.33,0,radius*0.33,radius*0.66,radius];
+  const bearings=[90,90,90,0,270,270,270];
+  const pts=offsets.map((d,i)=>{
+    if(d===0)return [lat,lon];
+    return destination(lat,lon,bearings[i],Math.abs(d));
+  });
+
+  const values=[];
+  for(const p of pts){
+    try{
+      values.push(await depthSample(p[0],p[1]));
+    }catch(e){
+      values.push(null);
+    }
+  }
+  return values;
+}
+
+function classify(values){
+  const v=values.filter(Number.isFinite);
+  if(v.length<3)return {name:'Belirsiz',cls:'warn'};
+  const range=Math.max(...v)-Math.min(...v);
+  let maxStep=0;
+  for(let i=1;i<v.length;i++)maxStep=Math.max(maxStep,Math.abs(v[i]-v[i-1]));
+  if(maxStep>=12)return {name:'Güçlü kırık',cls:'danger'};
+  if(maxStep>=7)return {name:'Belirgin kırık',cls:'hot'};
+  if(range>=6)return {name:'Eğim / yapı',cls:'good'};
+  if(range>=2)return {name:'Hafif eğim',cls:'good'};
+  return {name:'Düz taban',cls:'cold'};
+}
+
+function drawProfile(values){
+  const svg=$('profile');
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  bg.setAttribute('x',0);bg.setAttribute('y',0);bg.setAttribute('width',600);bg.setAttribute('height',125);bg.setAttribute('fill','#092638');
+  svg.appendChild(bg);
+
+  const good=values.filter(Number.isFinite);
+  if(good.length<2){
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',12);t.setAttribute('y',22);t.setAttribute('fill','#a9c4d1');t.setAttribute('font-size','13');
+    t.textContent='Profil verisi alınamadı.';
+    svg.appendChild(t);return;
+  }
+
+  const min=Math.min(...good),max=Math.max(...good);
+  const range=Math.max(1,max-min);
+  let d='';
+  values.forEach((v,i)=>{
+    if(!Number.isFinite(v))return;
+    const x=30+i*(540/Math.max(values.length-1,1));
+    const y=22+((v-min)/range)*78;
+    d+=(d?' L ':'M ')+x.toFixed(1)+' '+y.toFixed(1);
+  });
+  const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#78c9f2');path.setAttribute('stroke-width','7');path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');
+  svg.appendChild(path);
+
+  const a=document.createElementNS('http://www.w3.org/2000/svg','text');
+  a.setAttribute('x',12);a.setAttribute('y',18);a.setAttribute('fill','#a9c4d1');a.setAttribute('font-size','12');a.textContent='Sığ';
+  svg.appendChild(a);
+  const b=document.createElementNS('http://www.w3.org/2000/svg','text');
+  b.setAttribute('x',12);b.setAttribute('y',116);b.setAttribute('fill','#a9c4d1');b.setAttribute('font-size','12');b.textContent='Derin';
+  svg.appendChild(b);
+}
+
+async function fetchBathymetry(lat,lon,isLive){
+  lastDepthFetch=Date.now();
+  $('depth').textContent='…';
+  $('structure').textContent='Sorgulanıyor';
+  $('change').textContent='…';
+  setStatus('EMODnet bathymetry modeli sorgulanıyor…','warn');
+
+  try{
+    const values=await profileSamples(lat,lon);
+    const center=values[Math.floor(values.length/2)];
+    if(!Number.isFinite(center))throw new Error('Merkez derinliği alınamadı');
+
+    const cls=classify(values);
+    const valid=values.filter(Number.isFinite);
+    const range=Math.max(...valid)-Math.min(...valid);
+
+    $('depth').textContent=center.toFixed(1)+' m';
+    $('structure').textContent=cls.name;
+    $('structure').className='num '+(cls.cls||'');
+    $('range').textContent='ARALIK: '+range.toFixed(1)+' m';
+
+    const change=values.length>1 && Number.isFinite(values[0]) && Number.isFinite(values[values.length-1])
+      ? values[values.length-1]-values[0] : 0;
+    $('change').textContent=(change>=0?'+':'')+change.toFixed(1)+' m';
+
+    $('confidence').textContent='VERİ: '+(valid.length===values.length?'YÜKSEK':'ORTA');
+    drawProfile(values);
+
+    if(isLive)setStatus('Canlı GPS + EMODnet bathymetry aktif.','ok');
+    else setStatus('Harita test noktası sorgulandı.','ok');
+  }catch(err){
+    console.error(err);
+    $('depth').textContent='— m';
+    $('structure').textContent='Veri yok';
+    $('change').textContent='—';
+    $('confidence').textContent='VERİ: —';
+    $('range').textContent='ARALIK: —';
+    setStatus('Bathymetry verisi alınamadı. Birkaç saniye sonra tekrar deneyin.','danger');
+  }
+}
+
+})();
+</script>
+</body>
+</html>
